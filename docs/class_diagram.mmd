@@ -94,6 +94,7 @@ classDiagram
         +void update_window_transparency()
         +void update_keep_above()
         +void livecaptions_window_warn_slow()
+        +void update_label(line_generator lg)
     }
 
     asr_thread --> line_generator
@@ -105,4 +106,4 @@ classDiagram
     history_session --> history_entry
     line_generator --> GtkLabel
     LiveCaptionsApplication --> LiveCaptionsWindow
-    LiveCaptionsWindow --> line_generator
+    LiveCaptionsWindow --> line_generator : update_label

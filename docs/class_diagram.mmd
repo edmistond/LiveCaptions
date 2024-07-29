@@ -1,0 +1,108 @@
+classDiagram
+    class asr_thread {
+        +volatile size_t sound_counter
+        +size_t silence_counter
+        +GThread *thread_id
+        +line_generator line
+        +GMutex text_mutex
+        +char text_buffer[32768]
+        +void asr_thread_enqueue_audio(short *data, size_t num_shorts)
+        +gpointer asr_thread_get_model()
+        +gpointer asr_thread_get_session()
+        +void asr_thread_pause(bool pause)
+        +int asr_thread_samplerate()
+        +bool asr_thread_update_model(const char *model_path)
+        +bool asr_thread_is_errored()
+        +void asr_thread_set_main_window(LiveCaptionsWindow *window)
+        +void asr_thread_flush()
+        +void free_asr_thread()
+    }
+
+    class audio_thread_pa {
+        +asr_thread asr
+        +bool microphone
+        +size_t sample_rate
+        +char *sink_name
+        +char *source_name
+        +pa_threaded_mainloop *mainloop
+        +pa_mainloop_api *mainloop_api
+        +void *run_audio_thread_pa()
+        +void free_audio_thread_pa()
+    }
+
+    class audio_thread_pw {
+        +asr_thread asr
+        +bool microphone
+        +size_t sample_rate
+        +size_t channels
+        +struct pw_main_loop *loop
+        +struct pw_stream *stream
+        +void *run_audio_thread_pw()
+        +void free_audio_thread_pw()
+    }
+
+    class audio_thread {
+        +bool using_pulse
+        +audio_thread_pa pulse
+        +audio_thread_pw pipewire
+        +audio_thread create_audio_thread(bool microphone, asr_thread asr)
+        +void free_audio_thread()
+    }
+
+    class history_session {
+        +time_t timestamp
+        +size_t entries_count
+        +history_entry *entries
+    }
+
+    class history_entry {
+        +size_t tokens_count
+        +time_t timestamp
+    }
+
+    class history {
+        +history_session active_session
+        +history_session *past_sessions
+        +void history_init()
+        +void commit_tokens_to_current_history(const AprilToken *tokens)
+        +void save_silence_to_history()
+        +void save_current_history(const char *path)
+        +void load_history_from(const char *path)
+        +void export_history_as_text(const char *path)
+        +const history_session *get_history_session(size_t idx)
+        +void erase_all_history()
+    }
+
+    class line_generator {
+        +void line_generator_init()
+        +void line_generator_update(size_t num_tokens, const AprilToken *tokens)
+        +void line_generator_finalize()
+        +void line_generator_break()
+        +void line_generator_set_text(GtkLabel *lbl)
+        +void line_generator_set_language(const char* language)
+    }
+
+    class LiveCaptionsApplication {
+        +livecaptions_application_new(gchar *application_id, GApplicationFlags flags)
+        +void livecaptions_application_finish_setup(gdouble result)
+    }
+
+    class LiveCaptionsWindow {
+        +void change_button_layout(gint text_height)
+        +void update_line_width()
+        +void update_font()
+        +void update_window_transparency()
+        +void update_keep_above()
+        +void livecaptions_window_warn_slow()
+    }
+
+    asr_thread --> line_generator
+    audio_thread_pa --> asr_thread
+    audio_thread_pw --> asr_thread
+    audio_thread --> audio_thread_pa
+    audio_thread --> audio_thread_pw
+    history --> history_session
+    history_session --> history_entry
+    line_generator --> GtkLabel
+    LiveCaptionsApplication --> LiveCaptionsWindow
+    LiveCaptionsWindow --> line_generator
